@@ -1,0 +1,3 @@
+project=example_project
+table=demo_01
+columns=name:string,age:bigint,sex:string,address:string
