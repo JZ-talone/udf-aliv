@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 // TODO define input and output types, e.g. "string,string->string,bigint".
-@Resolve({"string,string,string,string->string,string"})
+@Resolve({"string,string,string,string->string,string,string"})
 public class JDMinPriceUDTF extends UDTF {
 
     @Override
@@ -28,7 +28,9 @@ public class JDMinPriceUDTF extends UDTF {
         Map cxmap = gzfx(cxstr);
 
         Double minprice = mpfx(xprice, yhqmap, cxmap);
-        forward(id, String.valueOf(minprice));
+
+        boolean xgflag = null != cxstr && cxstr.contains("仅购买1件");
+        forward(id, String.valueOf(minprice), xgflag ? "1" : "0");
     }
 
     public static void main(String[] args) {
@@ -106,7 +108,7 @@ public class JDMinPriceUDTF extends UDTF {
             }
         }
         // 可叠加优惠券
-        if(null!=yhqkdjmje){
+        if (null != yhqkdjmje) {
             if (totalPrice >= yhqkdjmje) {
                 totalPrice = totalPrice - yhqkdjmjj;
             } else {
@@ -120,7 +122,7 @@ public class JDMinPriceUDTF extends UDTF {
                         totalPrice = buyNum * xprice * cxzks / 10;
                     }
                 }
-                totalPrice = totalPrice - (null != yhqmje?yhqmjj:0)-yhqkdjmjj;
+                totalPrice = totalPrice - (null != yhqmje ? yhqmjj : 0) - yhqkdjmjj;
             }
         }
 
@@ -157,9 +159,9 @@ public class JDMinPriceUDTF extends UDTF {
             if (yhqzzisMatch) {
                 for (String sss : yhqstr.replaceAll("[^0-9]", ",").split(",")) {
                     if (sss.length() > 0)
-                        if(yhqstr.contains("可叠加")){
+                        if (yhqstr.contains("可叠加")) {
                             kdjmj.add(Integer.parseInt(sss));
-                        }else{
+                        } else {
                             mj.add(Integer.parseInt(sss));
                         }
                 }
