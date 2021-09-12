@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 // TODO define input and output types, e.g. "string,string->string,bigint".
-@Resolve({"string,string,string,string->string,string,string"})
+@Resolve({"string,string,string,string->string,string,string,string"})
 public class JDMinPriceUDTF extends UDTF {
 
     @Override
@@ -27,10 +27,10 @@ public class JDMinPriceUDTF extends UDTF {
         // 促销规则解析
         Map cxmap = gzfx(cxstr);
 
-        Double minprice = mpfx(xprice, yhqmap, cxmap);
+        Map map = mpfx(xprice, yhqmap, cxmap);
 
         boolean xgflag = null != cxstr && cxstr.contains("仅购买1件");
-        forward(id, String.valueOf(minprice), xgflag ? "1" : "0");
+        forward(id, String.valueOf(map.get("xprice")),String.valueOf(map.get("num")), xgflag ? "1" : "0");
     }
 
     public static void main(String[] args) {
@@ -45,11 +45,12 @@ public class JDMinPriceUDTF extends UDTF {
         String cxstr = "满2件，总价打9.80折；满6件，总价打9.60折";
         Map cxmap = gzfx(cxstr);
 
-        Double minprice = mpfx(xprice, yhqmap, cxmap);
-        System.out.println(minprice);
+        Map map = mpfx(xprice, yhqmap, cxmap);
+        System.out.println(1);
     }
 
-    public static Double mpfx(double xprice, Map yhqmap, Map cxmap) {
+    public static Map mpfx(double xprice, Map yhqmap, Map cxmap) {
+        Map map = new HashMap();
         Integer cxmje = null;
         Integer cxmjj = null;
         Integer cxzkj = null;
@@ -128,10 +129,13 @@ public class JDMinPriceUDTF extends UDTF {
 
 
         if (totalPrice == 0d) {
-            return xprice;
+            map.put("xprice",xprice);
+            map.put("num",1);
         } else {
-            return totalPrice / buyNum;
+            map.put("xprice",totalPrice / buyNum);
+            map.put("num",buyNum);
         }
+        return map;
     }
 
     public static Map gzfx(String yhqstrxx) {
