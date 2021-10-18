@@ -1,6 +1,5 @@
 package com.talone.udf.aliv.udtf;
 
-import com.alibaba.fastjson.JSON;
 import com.aliyun.odps.udf.UDFException;
 import com.aliyun.odps.udf.UDTF;
 import com.aliyun.odps.udf.annotation.Resolve;
@@ -20,11 +19,15 @@ public class TMMinPriceUDTF extends UDTF {
         String activityInfo = (String) args[1];
         String id = (String) args[2];
 
-        // 活动规则解析
-        Map yhqmap = gzfx(activityInfo);
+        if(xprice==0D){
+            forward(id, "0", "0", "0");
+        }else {
+            // 活动规则解析
+            Map yhqmap = gzfx(activityInfo);
 
-        Map map = mpfx(xprice, yhqmap);
-        forward(id, String.valueOf(map.get("xprice")), String.valueOf(map.get("num")),"0");
+            Map map = mpfx(xprice, yhqmap);
+            forward(id, String.valueOf(map.get("xprice")), String.valueOf(map.get("num")), "0");
+        }
     }
 
     public static void main(String[] args) {
