@@ -18,7 +18,7 @@ public class TMMinPriceUDTF extends UDTF {
     public void process(Object[] args) throws UDFException {
         Double xprice = Double.parseDouble((String) args[0]);
         String activityInfo = (String) args[1];
-        String id = (String) args[3];
+        String id = (String) args[2];
 
         // 活动规则解析
         Map yhqmap = gzfx(activityInfo);
