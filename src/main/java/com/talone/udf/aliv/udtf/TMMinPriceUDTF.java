@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-@Resolve({"string,string,string->string,string,string"})
+@Resolve({"string,string,string->string,string,string,string"})
 public class TMMinPriceUDTF extends UDTF {
 
     @Override
@@ -24,7 +24,7 @@ public class TMMinPriceUDTF extends UDTF {
         Map yhqmap = gzfx(activityInfo);
 
         Map map = mpfx(xprice, yhqmap);
-        forward(id, String.valueOf(map.get("xprice")), String.valueOf(map.get("num")));
+        forward(id, String.valueOf(map.get("xprice")), String.valueOf(map.get("num")),"0");
     }
 
     public static void main(String[] args) {
