@@ -28,6 +28,7 @@ public class TMMinPriceUDTF extends UDTF {
     }
 
     public static void main(String[] args) {
+        long s1 = System.currentTimeMillis();
         // 单价
         double xprice = 119;
 
@@ -36,7 +37,7 @@ public class TMMinPriceUDTF extends UDTF {
         Map yhqmap = gzfx(yhqstrxx);
 
         Map map = mpfx(xprice, yhqmap);
-        System.out.println(1);
+        System.out.println(System.currentTimeMillis()-s1);
     }
 
     public static Map mpfx(double xprice, Map yhqmap) {
@@ -80,8 +81,12 @@ public class TMMinPriceUDTF extends UDTF {
             return map;
         }
 
-        Map yhq = JSON.parseObject(yhqstrxx, Map.class);
-        String body = (String) yhq.get("body");
+        yhqstrxx = yhqstrxx.replaceAll("\n","|");
+        String[]  json = yhqstrxx.split("\"body\"");
+        String body = "";
+        if(json.length>1){
+            body = json[1];
+        }
 
         List<Integer> mj = new ArrayList<Integer>();
         Integer mje = 0;
