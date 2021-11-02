@@ -3,6 +3,7 @@ package com.talone.udf.aliv.udtf;
 import com.aliyun.odps.udf.UDFException;
 import com.aliyun.odps.udf.UDTF;
 import com.aliyun.odps.udf.annotation.Resolve;
+import com.aliyun.odps.utils.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,8 +21,8 @@ public class TKQMinPriceUDTF extends UDTF {
         String tkqInfo = (String) args[2];
         String id = (String) args[3];
 
-        if (xprice == 0D) {
-            forward(id, "0", "0", "0");
+        if (xprice == 0D || StringUtils.isBlank(tkqInfo)) {
+            forward(id, null, null, null);
         } else {
             Map map = tkfx(xprice, activityInfo, tkqInfo);
             forward(id, String.valueOf(map.get("xprice")), String.valueOf(map.get("num")), "0");
