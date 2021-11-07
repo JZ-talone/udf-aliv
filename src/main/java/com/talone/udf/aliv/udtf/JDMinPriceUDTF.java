@@ -21,16 +21,20 @@ public class JDMinPriceUDTF extends UDTF {
         String cxstr = (String) args[2];
         String id = (String) args[3];
 
-        // 优惠券规则解析
-        Map yhqmap = gzfx(yhqstrxx);
+        if(xprice==0D){
+            forward(id, "0", "0", "0");
+        }else {
+            // 优惠券规则解析
+            Map yhqmap = gzfx(yhqstrxx);
 
-        // 促销规则解析
-        Map cxmap = gzfx(cxstr);
+            // 促销规则解析
+            Map cxmap = gzfx(cxstr);
 
-        Map map = mpfx(xprice, yhqmap, cxmap);
+            Map map = mpfx(xprice, yhqmap, cxmap);
 
-        boolean xgflag = null != cxstr && cxstr.contains("仅购买1件");
-        forward(id, String.valueOf(map.get("xprice")),String.valueOf(map.get("num")), xgflag ? "1" : "0");
+            boolean xgflag = null != cxstr && cxstr.contains("仅购买1件");
+            forward(id, String.valueOf(map.get("xprice")), String.valueOf(map.get("num")), xgflag ? "1" : "0");
+        }
     }
 
     public static void main(String[] args) {
