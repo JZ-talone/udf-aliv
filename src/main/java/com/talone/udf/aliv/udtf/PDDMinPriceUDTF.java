@@ -49,7 +49,7 @@ public class PDDMinPriceUDTF extends UDTF {
             } else {
                 if (couponjson.contains("mallCouponBatchTitle")) {
                     // 包含无门槛券直接返回券后价
-                    map.put("xprice", xprice);
+                    map.put("xprice", pddownprice);
                     map.put("num", 1);
                     map.put("pddownprice", pddownprice);
                     return map;
@@ -96,7 +96,7 @@ public class PDDMinPriceUDTF extends UDTF {
                         map.put("pddownprice", pddownprice);
                         return map;
                     } else {
-                        map.put("xprice", xprice);
+                        map.put("xprice", null != pddownprice ? pddownprice : xprice);
                         map.put("num", 1);
                         map.put("pddownprice", pddownprice);
                         return map;
@@ -104,7 +104,7 @@ public class PDDMinPriceUDTF extends UDTF {
                 }
             }
         } catch (Exception e) {
-            map.put("xprice", xprice);
+            map.put("xprice", null != pddownprice ? pddownprice : xprice);
             map.put("num", 1);
             map.put("pddownprice", pddownprice);
             return map;
@@ -132,26 +132,27 @@ public class PDDMinPriceUDTF extends UDTF {
 
 
     public static void main(String[] args) throws UDFException {
-//        // 原价
-//        Double xprice = 19.99;
-//        // 拼多多提示str
-//        String pddownqhprice = "券后￥9.99起";
-//        // 折扣json
-//        String couponjson = "{\"title\": \"优惠详情\", \"mallCouponBatchTitle\": \"领取优惠券\", \"mallCouponBatchList\": [{\"batchSn\": \"A0201VC-589690095601188905\", \"mallId\": 361685033, \"discount\": 1000, \"minAmount\": 1000, \"discountType\": 1, \"richRulesDesc\": [{\"txt\": \"10元无门槛券\"}], \"displayType\": 36, \"sourceType\": 201, \"colorType\": 1, \"timeDisplayName\": \"领券后7天内有效\", \"tagDesc\": \"店铺关注券\", \"goldenTag\": \"False\", \"buttonClickable\": \"True\", \"buttonDesc\": \"关注并领取\", \"buttonSubDesc\": \"\", \"clickOperationType\": 2}], \"mallPromotionEventDetail\": {\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0596OM-589830814469914665\", \"mallId\": 361685033, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满99元减10元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=361685033&promotion_event_sn=Z0596OM-589830814469914665&top_goods_ids=205011742350&select_goods_ids=205011742350&last_cart=[205011742350]\", \"isCouponStyle\": \"False\"}, \"mallPromotionEventTitle\": \"店铺活动\", \"mallPromotionEventDetailList\": [{\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0596OM-589830814469914665\", \"mallId\": 361685033, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满99元减10元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=361685033&promotion_event_sn=Z0596OM-589830814469914665&top_goods_ids=205011742350&select_goods_ids=205011742350&last_cart=[205011742350]\", \"isCouponStyle\": \"True\", \"tag\": \"满减专区\", \"discountParam\": 1000, \"minOrderAmount\": 9900, \"discountDesc\": \"满99元减10元\", \"discountTagDesc\": \"活动专区商品可用\", \"discountType\": 1}], \"environmentContext\": {\"pageFrom\": \"0\", \"newVersion\": \"True\", \"functionTag\": \"False\"}, \"isUnavailable\": \"False\"}";
-//        String id = "11";
-
         // 原价
-        Double xprice = 269.99;
+        Double xprice = 19.99;
         // 拼多多提示str
-        String pddownqhprice = "";
+        String pddownqhprice = "券后￥9.99起";
         // 折扣json
-        String couponjson = "{\"title\": \"优惠详情\", \"mallPromotionEventDetail\": {\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0659MM-588001226659874456\", \"mallId\": 255952536, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满299元减20元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=255952536&promotion_event_sn=Z0659MM-588001226659874456&top_goods_ids=203938528049&select_goods_ids=203938528049&last_cart=[203938528049]\", \"isCouponStyle\": \"False\"}, \"mallPromotionEventTitle\": \"店铺活动\", \"mallPromotionEventDetailList\": [{\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0659MM-588001226659874456\", \"mallId\": 255952536, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满299元减20元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=255952536&promotion_event_sn=Z0659MM-588001226659874456&top_goods_ids=203938528049&select_goods_ids=203938528049&last_cart=[203938528049]\", \"isCouponStyle\": \"True\", \"tag\": \"满减专区\", \"discountParam\": 2000, \"minOrderAmount\": 29900, \"discountDesc\": \"满299元减20元\", \"discountTagDesc\": \"活动专区商品可用\", \"discountType\": 1}], \"giftPromotionDetails\": {\"title\": \"赠品\", \"rulesDesc\": \"部分规格拼单可得以下赠品（赠完即止）\", \"giftGoodsName\": \"碧生源维生素C泡腾片甜橙味固体饮料儿童成人维他命VC维C泡腾片\", \"thumbnailUrl\": \"https://img.pddpic.com/mms-material-img/2021-10-11/ed945a12-1580-4d83-9f6f-6a194c05a2f2.jpeg.a.jpeg\"}, \"environmentContext\": {\"pageFrom\": \"0\", \"newVersion\": \"True\", \"functionTag\": \"False\"}, \"isUnavailable\": \"False\"}";
+        String couponjson = "{\"title\": \"优惠详情\", \"mallCouponBatchTitle\": \"领取优惠券\", \"mallCouponBatchList\": [{\"batchSn\": \"A0201VC-589690095601188905\", \"mallId\": 361685033, \"discount\": 1000, \"minAmount\": 1000, \"discountType\": 1, \"richRulesDesc\": [{\"txt\": \"10元无门槛券\"}], \"displayType\": 36, \"sourceType\": 201, \"colorType\": 1, \"timeDisplayName\": \"领券后7天内有效\", \"tagDesc\": \"店铺关注券\", \"goldenTag\": \"False\", \"buttonClickable\": \"True\", \"buttonDesc\": \"关注并领取\", \"buttonSubDesc\": \"\", \"clickOperationType\": 2}], \"mallPromotionEventDetail\": {\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0596OM-589830814469914665\", \"mallId\": 361685033, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满99元减10元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=361685033&promotion_event_sn=Z0596OM-589830814469914665&top_goods_ids=205011742350&select_goods_ids=205011742350&last_cart=[205011742350]\", \"isCouponStyle\": \"False\"}, \"mallPromotionEventTitle\": \"店铺活动\", \"mallPromotionEventDetailList\": [{\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0596OM-589830814469914665\", \"mallId\": 361685033, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满99元减10元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=361685033&promotion_event_sn=Z0596OM-589830814469914665&top_goods_ids=205011742350&select_goods_ids=205011742350&last_cart=[205011742350]\", \"isCouponStyle\": \"True\", \"tag\": \"满减专区\", \"discountParam\": 1000, \"minOrderAmount\": 9900, \"discountDesc\": \"满99元减10元\", \"discountTagDesc\": \"活动专区商品可用\", \"discountType\": 1}], \"environmentContext\": {\"pageFrom\": \"0\", \"newVersion\": \"True\", \"functionTag\": \"False\"}, \"isUnavailable\": \"False\"}";
         String id = "11";
+
+//        // 原价
+//        Double xprice = 269.99;
+//        // 拼多多提示str
+//        String pddownqhprice = "";
+//        // 折扣json
+//        String couponjson = "{\"title\": \"优惠详情\", \"mallPromotionEventDetail\": {\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0659MM-588001226659874456\", \"mallId\": 255952536, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满299元减20元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=255952536&promotion_event_sn=Z0659MM-588001226659874456&top_goods_ids=203938528049&select_goods_ids=203938528049&last_cart=[203938528049]\", \"isCouponStyle\": \"False\"}, \"mallPromotionEventTitle\": \"店铺活动\", \"mallPromotionEventDetailList\": [{\"mallEventTitle\": \"店铺活动\", \"promoEventSn\": \"Z0659MM-588001226659874456\", \"mallId\": 255952536, \"mallEventDesc\": [{\"txt\": \"入选店内\"}, {\"txt\": \"满299元减20元\", \"color\": \"#E02E24\"}, {\"txt\": \"专区\"}], \"buttonDesc\": \"去看看\", \"jumpUrl\": \"likes.html?_t_timestamp=likes_merge_list&mall_id=255952536&promotion_event_sn=Z0659MM-588001226659874456&top_goods_ids=203938528049&select_goods_ids=203938528049&last_cart=[203938528049]\", \"isCouponStyle\": \"True\", \"tag\": \"满减专区\", \"discountParam\": 2000, \"minOrderAmount\": 29900, \"discountDesc\": \"满299元减20元\", \"discountTagDesc\": \"活动专区商品可用\", \"discountType\": 1}], \"giftPromotionDetails\": {\"title\": \"赠品\", \"rulesDesc\": \"部分规格拼单可得以下赠品（赠完即止）\", \"giftGoodsName\": \"碧生源维生素C泡腾片甜橙味固体饮料儿童成人维他命VC维C泡腾片\", \"thumbnailUrl\": \"https://img.pddpic.com/mms-material-img/2021-10-11/ed945a12-1580-4d83-9f6f-6a194c05a2f2.jpeg.a.jpeg\"}, \"environmentContext\": {\"pageFrom\": \"0\", \"newVersion\": \"True\", \"functionTag\": \"False\"}, \"isUnavailable\": \"False\"}";
+//        String id = "11";
 
         Double pddownprice = pddownfx(pddownqhprice);
 
         // 促销规则解析
         Map map = mpfx(xprice, pddownprice, couponjson);
+        System.out.println(1);
     }
 
 
