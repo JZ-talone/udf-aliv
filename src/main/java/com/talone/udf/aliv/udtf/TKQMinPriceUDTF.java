@@ -67,7 +67,7 @@ public class TKQMinPriceUDTF extends UDTF {
         }
 
         if (null != activityInfo && !"".equals(activityInfo)) {
-            activityInfo = activityInfo.replaceAll("\n", "|");
+            activityInfo = activityInfo.replaceAll("\\\\n", "|");
             String[] json = activityInfo.split("\"body\"");
             String body = "";
             if (json.length > 1) {
@@ -76,7 +76,7 @@ public class TKQMinPriceUDTF extends UDTF {
 
             List<Integer> mj = new ArrayList<Integer>();
 
-            String[] yhqstrss = body.split("\n");
+            String[] yhqstrss = body.split("\\|");
             for (String yhqstr : yhqstrss) {
                 // 满减
                 yhqstr = yhqstr.replace(" ", "");
