@@ -69,7 +69,7 @@ public class JDMinPriceUDTF extends UDTF {
 //        double xprice = 69.99;
 //
 //        // 优惠券规则解析
-//        String yhqstrxx = "(可叠加)以下商品可使用满200减30的优惠券|(可叠加)以下商品可使用满99减10的优惠券";
+//        String yhqstrxx = "(可叠加)以下商品可使用满200减30的优惠券|(可叠加)以下商品可使用满99减10的优惠券|以下商品可使用满500减150的优惠券|以下商品可使用满1000减500的优惠券";
 //        Map yhqmap = gzfx(yhqstrxx);
 //
 //        // 促销规则解析

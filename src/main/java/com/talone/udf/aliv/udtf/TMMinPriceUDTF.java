@@ -33,10 +33,10 @@ public class TMMinPriceUDTF extends UDTF {
     public static void main(String[] args) {
         long s1 = System.currentTimeMillis();
         // 单价
-        double xprice = 119;
+        double xprice = 487;
 
         // 优惠券规则解析
-        String yhqstrxx = "{\"head\": \"雅塑72粒 到2021-10-31 00:00:00结束\", \"body\": \" 满400元 减60元 \\n 满790元 减120元 \\n 满1700元 减400元 \"}";
+        String yhqstrxx = "{\"head\": \"艾丽满减42粒(5) 到2021-11-30 23:59:59结束\", \"body\": \" 满250元 减90元 \\n 满360元 减140元 \\n 满480元 减190元 \"}";
         Map yhqmap = gzfx(yhqstrxx);
 
         Map map = mpfx(xprice, yhqmap);
@@ -84,7 +84,7 @@ public class TMMinPriceUDTF extends UDTF {
             return map;
         }
 
-        yhqstrxx = yhqstrxx.replaceAll("\n","|");
+        yhqstrxx = yhqstrxx.replaceAll("\\\\n","|");
         String[]  json = yhqstrxx.split("\"body\"");
         String body = "";
         if(json.length>1){
@@ -95,7 +95,7 @@ public class TMMinPriceUDTF extends UDTF {
         Integer mje = 0;
         Integer mjj = 0;
 
-        String[] yhqstrss = body.split("\n");
+        String[] yhqstrss = body.split("\\|");
         for (String yhqstr : yhqstrss) {
             // 满减
             yhqstr = yhqstr.replace(" ", "");
