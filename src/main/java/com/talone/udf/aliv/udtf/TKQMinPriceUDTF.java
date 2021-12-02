@@ -60,7 +60,7 @@ public class TKQMinPriceUDTF extends UDTF {
         Double totalPrice = 0d;
 
         if (null != tke) {
-            if (totalPrice < tkj) {
+            while (totalPrice < tkj) {
                 buyNum++;
                 totalPrice = buyNum * xprice;
             }
@@ -123,13 +123,13 @@ public class TKQMinPriceUDTF extends UDTF {
     public static void main(String[] args) {
         long s1 = System.currentTimeMillis();
         // 单价
-        double xprice = 518;
+        double xprice = 46;
 
         // 优惠券规则解析
-        String yhqstrxx = "";
+        String yhqstrxx = "head: 雅塑白盒120粒 到2021-12-31 00:00:00结束, body: 满98元 减8元 \\n 满260元 减45元 \\n 满360元 减110元 \\n 满550元 减170元 \\n 满1200元 减475元";
 
         //String yhqstrxx = "{\"head\": \"慕小腰日常满减 到2022-05-29 00:00:00结束\", \"body\": \" 满35.8元 减8元 \\n 满338元 减212元 \\n 满1014元 减642元 \\n 满1597元 减1012元 \"}";
-        String tkqInfo = "满58.00减40";
+        String tkqInfo = "满90减60";
         Map map = tkfx(xprice, yhqstrxx, tkqInfo);
 
 
