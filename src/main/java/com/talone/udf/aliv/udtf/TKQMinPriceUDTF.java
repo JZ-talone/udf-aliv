@@ -105,6 +105,8 @@ public class TKQMinPriceUDTF extends UDTF {
             }
             tkj += mjj;
             totalPrice -= tkj;
+        }else{
+            totalPrice -= tkj;
         }
 
         if (totalPrice == 0d) {
@@ -121,11 +123,13 @@ public class TKQMinPriceUDTF extends UDTF {
     public static void main(String[] args) {
         long s1 = System.currentTimeMillis();
         // 单价
-        double xprice = 1597;
+        double xprice = 518;
 
         // 优惠券规则解析
-        String yhqstrxx = "{\"head\": \"慕小腰日常满减 到2022-05-29 00:00:00结束\", \"body\": \" 满35.8元 减8元 \\n 满338元 减212元 \\n 满1014元 减642元 \\n 满1597元 减1012元 \"}";
-        String tkqInfo = "满19减8";
+        String yhqstrxx = "";
+
+        //String yhqstrxx = "{\"head\": \"慕小腰日常满减 到2022-05-29 00:00:00结束\", \"body\": \" 满35.8元 减8元 \\n 满338元 减212元 \\n 满1014元 减642元 \\n 满1597元 减1012元 \"}";
+        String tkqInfo = "满58.00减40";
         Map map = tkfx(xprice, yhqstrxx, tkqInfo);
 
 
