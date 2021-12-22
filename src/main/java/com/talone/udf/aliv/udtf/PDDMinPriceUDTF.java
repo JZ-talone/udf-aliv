@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-// TODO define input and output types, e.g. "string,string->string,bigint".
 @Resolve({"string,string,string,string->string,string,string,string"})
 public class PDDMinPriceUDTF extends UDTF {
 
