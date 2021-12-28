@@ -107,6 +107,7 @@ public class SkuDrugUnitUDTF extends UDTF {
                 .replaceAll("十", "10")
                 .replaceAll("粒装", "粒")
                 .replaceAll("盒装", "盒")
+                .replaceAll("板","盒")
                 .replaceAll("的", "*")
                 .replaceAll("x", "*")
                 .replaceAll("X", "*");
