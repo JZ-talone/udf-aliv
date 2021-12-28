@@ -21,19 +21,19 @@ public class SkuDrugUnitUDTF extends UDTF {
         String spuTitle = (String) args[2];
         String skuTitle = (String) args[3];
         Long masterDrugUnit = masterDrugUnitFx(masterPackage);
-        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle);
-        Long totalLs = null, totalHs = null;
-        if (null != titleParse.get("ls")) {
-            totalLs = titleParse.get("ls");
-            totalHs = totalLs / masterDrugUnit;
-        } else if (null != titleParse.get("hs")) {
-            totalHs = titleParse.get("hs");
-            totalLs = totalHs * masterDrugUnit;
-        }
 
         if (masterDrugUnit == 0D) {
             forward(id, masterPackage, spuTitle, skuTitle, 0L, 0L, 0L);
         } else {
+            Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle,0);
+            Long totalLs = null, totalHs = null;
+            if (null != titleParse.get("ls")) {
+                totalLs = titleParse.get("ls");
+                totalHs = totalLs / masterDrugUnit;
+            } else if (null != titleParse.get("hs")) {
+                totalHs = titleParse.get("hs");
+                totalLs = totalHs * masterDrugUnit;
+            }
             forward(id, masterPackage, spuTitle, skuTitle, masterDrugUnit, totalLs, totalHs);
         }
     }
@@ -73,7 +73,7 @@ public class SkuDrugUnitUDTF extends UDTF {
         return ans;
     }
 
-    private static Map<String, Long> titleParseFx(String spuTitle, String skuTitle) {
+    private static Map<String, Long> titleParseFx(String spuTitle, String skuTitle,Integer time) {
         // todo 处理 加送xxx x粒 的情况
         Pattern pn = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
 
@@ -345,7 +345,7 @@ public class SkuDrugUnitUDTF extends UDTF {
             }
             Long ls = 0L;
             for (String zj : zjs) {
-                Long zjparse = zjParseFunc(zj);
+                Long zjparse = zjParseFunc(zj,time);
                 ls = zjparse > ls ? zjparse : ls;
             }
             map.put("ls", ls);
@@ -368,10 +368,13 @@ public class SkuDrugUnitUDTF extends UDTF {
         return ls;
     }
 
-    private static Long zjParseFunc(String zj) {
+    private static Long zjParseFunc(String zj,Integer time) {
+        if(time==4){
+            return 0L;
+        }
         Long ls = 0L;
         for (String s : zj.split("\\+")) {
-            Map<String, Long> addParse = titleParseFx("", s);
+            Map<String, Long> addParse = titleParseFx("", s,time+1);
             ls += (null == addParse.get("ls") ? 0L : addParse.get("ls"));
         }
         return ls;
@@ -416,7 +419,8 @@ public class SkuDrugUnitUDTF extends UDTF {
 //        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle);
 //        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
 
-//        List<String> list = new ArrayList<>();
+        List<String> list = new ArrayList<>();
+        list.add("90粒（18粒3盒3粒12盒）");
 //        list.add("碧奥8粒+碧生源维生素C60粒");
 //        list.add("3盒30粒+来利奥利司他6粒");
 //        list.add("【6粒仅体验】建议购买24+24粒");
@@ -476,9 +480,9 @@ public class SkuDrugUnitUDTF extends UDTF {
 //        list.add("60mg*5粒（3盒装）");
 //        list.add("艾丽126粒】加送60粒白芸豆");
 
-//        list.stream().forEach((a) -> {
-//            Map<String, Long> titleParse = titleParseFx("", a);
-//        });
+        list.stream().forEach((a) -> {
+            Map<String, Long> titleParse = titleParseFx("", a,0);
+        });
     }
 
 }
