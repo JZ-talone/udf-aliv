@@ -4,10 +4,7 @@ import com.aliyun.odps.udf.UDFException;
 import com.aliyun.odps.udf.UDTF;
 import com.aliyun.odps.udf.annotation.Resolve;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,36 +13,49 @@ public class SkuDrugUnitUDTF extends UDTF {
 
     @Override
     public void process(Object[] args) throws UDFException {
+        // id
         String id = (String) args[0];
+        // 标品包装
         String masterPackage = (String) args[1];
+        // sputitle
         String spuTitle = (String) args[2];
+        // skutitle
         String skuTitle = (String) args[3];
         try {
             if (null == masterPackage || "".equals(masterPackage) || null == skuTitle || "".equals(skuTitle)) {
+                // 标品和skutitle不能为空
                 forward(id, masterPackage, spuTitle, skuTitle, 0L, 0L, 0L);
-            }else{
+            } else {
+                // 计算标品粒数
                 Long masterDrugUnit = masterDrugUnitFx(masterPackage);
 
                 if (masterDrugUnit == 0D) {
+                    // 标品粒数为0无效
                     forward(id, masterPackage, spuTitle, skuTitle, 0L, 0L, 0L);
                 } else {
-                    Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle, 0);
+                    // 计算基础单位
+                    String baseUnit = sortMasterDrugUnitFx(masterPackage);
+
+                    Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle, masterPackage, baseUnit, masterDrugUnit, 0);
                     Long totalLs = null, totalHs = null;
                     if (null != titleParse.get("ls")) {
+                        // 优先基于总粒数与标品粒数-》盒数
                         totalLs = titleParse.get("ls");
                         totalHs = totalLs / masterDrugUnit;
                     } else if (null != titleParse.get("hs")) {
+                        // 无总粒数的情况-》基于盒数与标品粒数-》总粒数
                         totalHs = titleParse.get("hs");
                         totalLs = totalHs * masterDrugUnit;
                     }
                     forward(id, masterPackage, spuTitle, skuTitle, masterDrugUnit, totalLs, totalHs);
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             forward(id, masterPackage, spuTitle, skuTitle, 0L, 0L, 0L);
         }
 
     }
+
 
     public static List<String> getMatchers(String regex, String source) {
         Pattern pattern = Pattern.compile(regex);
@@ -57,6 +67,55 @@ public class SkuDrugUnitUDTF extends UDTF {
         return list;
     }
 
+
+    /**
+     * 计算标品基础单位
+     *
+     * @param masterPackage
+     * @return
+     */
+    private static String sortMasterDrugUnitFx(String masterPackage) {
+        // 去除可能的 (*) 及 +*
+        int x = masterPackage.indexOf("(");
+        int y = masterPackage.indexOf("+");
+        x = (x == -1 ? Integer.MAX_VALUE : x) < (y == -1 ? Integer.MAX_VALUE : y) ? x : y;
+        if (x > -1) {
+            masterPackage = masterPackage.substring(0, x);
+        }
+        List<String> matchers = getMatchers("([0-9]+([.]{1}[0-9]+){0,1}(粒|片|板|盒|瓶|小盒|袋|吸))", masterPackage);
+
+        // 优先级 粒>片>吸>瓶>板>小盒>袋    不统计 盒 盒是盒数关键字 只有盒则默认粒 抛弃
+        String unit = "粒";
+        Set<String> unitSet = new HashSet<>();
+        for (String matcher : matchers) {
+            Pattern pattern = Pattern.compile("粒|片|板|盒|瓶|小盒|袋|吸");
+            Matcher mat = pattern.matcher(matcher);
+            if (mat.find()) {
+                unitSet.add(mat.group());
+            }
+        }
+        List<String> unitSortList = new ArrayList<>();
+        unitSortList.add("粒");
+        unitSortList.add("片");
+        unitSortList.add("吸");
+        unitSortList.add("瓶");
+        unitSortList.add("板");
+        unitSortList.add("小盒");
+        unitSortList.add("袋");
+        for (String s : unitSortList) {
+            if (unitSet.contains(s)) {
+                return s;
+            }
+        }
+        return unit;
+    }
+
+    /**
+     * 计算标品粒数
+     *
+     * @param masterPackage
+     * @return
+     */
     private static Long masterDrugUnitFx(String masterPackage) {
         if (null == masterPackage || "".equals(masterPackage)) {
             return 0L;
@@ -68,7 +127,7 @@ public class SkuDrugUnitUDTF extends UDTF {
         if (x > -1) {
             masterPackage = masterPackage.substring(0, x);
         }
-        List<String> matchers = getMatchers("([0-9]+([.]{1}[0-9]+){0,1}(粒|片|板|盒|瓶|小盒|袋))", masterPackage);
+        List<String> matchers = getMatchers("([0-9]+([.]{1}[0-9]+){0,1}(粒|片|板|盒|瓶|小盒|袋|吸))", masterPackage);
 
         Long ans = 1L;
         for (String matcher : matchers) {
@@ -82,14 +141,19 @@ public class SkuDrugUnitUDTF extends UDTF {
         return ans;
     }
 
-    private static Map<String, Long> titleParseFx(String spuTitle, String skuTitle, Integer time) {
+    private static Map<String, Long> titleParseFx(String spuTitle, String skuTitle, String masterPackage, String baseUnit, Long masterDrugUnit, Integer time) {
+
+        // 将sku spu中和标品规格完全一致的序列去除
+        skuTitle = skuTitle.replaceAll(masterPackage, "");
+        skuTitle = skuTitle.replaceAll(masterDrugUnit + baseUnit, "");
+
         // todo 处理 加送xxx x粒 的情况
         Pattern pn = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
 
         Map<String, Long> map = new HashMap<>();
         // 解析skuTitle
         // case skutitle包含 共x粒;
-        Pattern p1 = Pattern.compile("(共|直发)[0-9]+([.]{1}[0-9]+){0,1}粒");
+        Pattern p1 = Pattern.compile("(共|直发)[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit);
         Matcher m1 = p1.matcher(skuTitle);
         if (m1.find()) {
             String m1g = m1.group();
@@ -114,9 +178,9 @@ public class SkuDrugUnitUDTF extends UDTF {
                 .replaceAll("八", "8")
                 .replaceAll("九", "9")
                 .replaceAll("十", "10")
-                .replaceAll("粒装", "粒")
+                .replaceAll(baseUnit + "装", baseUnit)
                 .replaceAll("盒装", "盒")
-                .replaceAll("板", "盒")
+                //.replaceAll("板", "盒")
                 .replaceAll("的", "*")
                 .replaceAll("x", "*")
                 .replaceAll("X", "*");
@@ -128,14 +192,14 @@ public class SkuDrugUnitUDTF extends UDTF {
          */
         boolean h1 = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}盒.*", skuTitle);
         boolean hn = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}盒.*[0-9]+([.]{1}[0-9]+){0,1}盒.*", skuTitle);
-        boolean l1 = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}粒.*", skuTitle);
-        boolean ln = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}粒.*[0-9]+([.]{1}[0-9]+){0,1}粒.*", skuTitle);
+        boolean l1 = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + ".*", skuTitle);
+        boolean ln = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + ".*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + ".*", skuTitle);
 
         if (!h1 && !l1) {
             // 0盒数0粒数     得1盒
             Long hs = 1L;
             // 获取spu的单盒粒数
-            Long spuLs = spuLsParse(spuTitle);
+            Long spuLs = spuLsParse(spuTitle, baseUnit);
             if (null != spuLs && 0 != spuLs) {
                 map.put("ls", hs * spuLs);
             } else {
@@ -155,7 +219,7 @@ public class SkuDrugUnitUDTF extends UDTF {
                 hs = Long.parseLong(mat.group());
             }
             // 获取spu的单盒粒数
-            Long spuLs = spuLsParse(spuTitle);
+            Long spuLs = spuLsParse(spuTitle, baseUnit);
             if (null != spuLs && 0 != spuLs) {
                 map.put("ls", hs * spuLs);
             } else {
@@ -166,7 +230,7 @@ public class SkuDrugUnitUDTF extends UDTF {
 
         if (!h1 && !hn && l1 && !ln) {
             // 1粒数0盒数
-            List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}粒", skuTitle);
+            List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit, skuTitle);
 
             Long ls = 1L;
             Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -180,9 +244,9 @@ public class SkuDrugUnitUDTF extends UDTF {
 
         if (!h1 && !hn && ln) {
             // n粒数0盒数 24粒+24粒     买128粒 送xxx12粒
-            boolean jl = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}粒\\+[0-9]+([.]{1}[0-9]+){0,1}粒.*", skuTitle);
+            boolean jl = Pattern.matches(".*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "\\+[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + ".*", skuTitle);
             if (jl) {
-                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}粒\\+[0-9]+([.]{1}[0-9]+){0,1}粒", skuTitle);
+                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "\\+[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit, skuTitle);
                 Long ls = 1L;
                 Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
                 for (String matcher : matchers) {
@@ -195,7 +259,7 @@ public class SkuDrugUnitUDTF extends UDTF {
                 }
                 map.put("ls", ls);
             } else {
-                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}粒", skuTitle);
+                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit, skuTitle);
 
                 Long ls = 1L;
                 Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -224,7 +288,7 @@ public class SkuDrugUnitUDTF extends UDTF {
             }
 
             // 获取spu的单盒粒数
-            Long spuLs = spuLsParse(spuTitle);
+            Long spuLs = spuLsParse(spuTitle, baseUnit);
             if (null != spuLs && 0 != spuLs) {
                 map.put("ls", hs * spuLs);
             } else {
@@ -235,9 +299,9 @@ public class SkuDrugUnitUDTF extends UDTF {
 
         if (!hn && h1 && !ln && l1) {
             // 1粒数1盒数     有乘号相乘  无乘号判断
-            boolean chtrue = Pattern.matches(".*(([0-9]+([.]{1}[0-9]+){0,1}粒\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}粒)).*", skuTitle);
+            boolean chtrue = Pattern.matches(".*(([0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + ")).*", skuTitle);
             if (chtrue) {
-                List<String> matchers = getMatchers("(([0-9]+([.]{1}[0-9]+){0,1}粒\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}粒))", skuTitle);
+                List<String> matchers = getMatchers("(([0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "))", skuTitle);
                 Long ls = 1L;
                 Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
                 Matcher mat = pattern.matcher(matchers.get(0));
@@ -246,7 +310,7 @@ public class SkuDrugUnitUDTF extends UDTF {
                 }
                 map.put("ls", ls);
             } else {
-                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}(粒|盒)", skuTitle);
+                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}(" + baseUnit + "|盒)", skuTitle);
                 Long hs = 1L;
                 Long ls = 1L;
                 Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -256,7 +320,7 @@ public class SkuDrugUnitUDTF extends UDTF {
                         if (matcher.contains("盒")) {
                             hs = Long.parseLong(mat.group());
                         }
-                        if (matcher.contains("粒")) {
+                        if (matcher.contains(baseUnit)) {
                             ls = Long.parseLong(mat.group());
                         }
                     }
@@ -269,7 +333,7 @@ public class SkuDrugUnitUDTF extends UDTF {
 
         if (!hn && h1 && ln) {
             // n粒数1盒数 取最大粒数即可覆盖大部分case
-            List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}粒", skuTitle);
+            List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit, skuTitle);
 
             Long ls = 1L;
             Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -285,9 +349,9 @@ public class SkuDrugUnitUDTF extends UDTF {
 
         if (!ln && l1 && hn) {
             // 1粒数n盒数  先看是否有乘数 有乘数直接相乘   无则根据粒数index 就近原则取盒数  相同时左优先
-            boolean chtrue = Pattern.matches(".*(([0-9]+([.]{1}[0-9]+){0,1}粒\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}粒)).*", skuTitle);
+            boolean chtrue = Pattern.matches(".*(([0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + ")).*", skuTitle);
             if (chtrue) {
-                List<String> matchers = getMatchers("(([0-9]+([.]{1}[0-9]+){0,1}粒\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}粒))", skuTitle);
+                List<String> matchers = getMatchers("(([0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "\\*[0-9]+([.]{1}[0-9]+){0,1}盒)|([0-9]+([.]{1}[0-9]+){0,1}盒\\*[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit + "))", skuTitle);
                 Long ls = 1L;
                 Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
                 Matcher mat = pattern.matcher(matchers.get(0));
@@ -296,14 +360,14 @@ public class SkuDrugUnitUDTF extends UDTF {
                 }
                 map.put("ls", ls);
             } else {
-                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}(粒|盒)", skuTitle);
+                List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}(" + baseUnit + "|盒)", skuTitle);
                 Integer lindex = -1;
                 List<Integer> hindex = new ArrayList<>();
                 String lmatcher = null;
                 List<String> hmatchers = new ArrayList<>();
                 for (String matcher : matchers) {
                     Integer index = skuTitle.indexOf(matcher);
-                    if (matcher.contains("粒")) {
+                    if (matcher.contains(baseUnit)) {
                         lindex = index;
                         lmatcher = matcher;
                     } else {
@@ -355,7 +419,7 @@ public class SkuDrugUnitUDTF extends UDTF {
             }
             Long ls = 0L;
             for (String zj : zjs) {
-                Long zjparse = zjParseFunc(zj, time);
+                Long zjparse = zjParseFunc(zj, baseUnit, masterDrugUnit, time);
                 ls = zjparse > ls ? zjparse : ls;
             }
             map.put("ls", ls);
@@ -365,11 +429,11 @@ public class SkuDrugUnitUDTF extends UDTF {
         return map;
     }
 
-    private static Long spuLsParse(String spuTitle) {
+    private static Long spuLsParse(String spuTitle, String baseUnit) {
         if (null == spuTitle || "".equals(spuTitle)) {
             return 0L;
         }
-        List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}粒", spuTitle);
+        List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit, spuTitle);
         Long ls = 0L;
         for (String matcher : matchers) {
             Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -381,13 +445,13 @@ public class SkuDrugUnitUDTF extends UDTF {
         return ls;
     }
 
-    private static Long zjParseFunc(String zj, Integer time) {
+    private static Long zjParseFunc(String zj, String baseUnit, Long masterDrugUnit, Integer time) {
         if (time == 4) {
             return 0L;
         }
         Long ls = 0L;
         for (String s : zj.split("\\+")) {
-            Map<String, Long> addParse = titleParseFx("", s, time + 1);
+            Map<String, Long> addParse = titleParseFx("", s, "", baseUnit, masterDrugUnit, time + 1);
             ls += (null == addParse.get("ls") ? 0L : addParse.get("ls"));
         }
         return ls;
@@ -416,15 +480,17 @@ public class SkuDrugUnitUDTF extends UDTF {
 //        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle);
 //        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
 
-//        String masterPackage = "60mg*12粒*4板";
-//        Long masterDrugUnit = masterDrugUnitFx(masterPackage);
-//        System.out.println(masterDrugUnit);
+        String masterPackage = "12袋";
+        Long masterDrugUnit = masterDrugUnitFx(masterPackage);
+        System.out.println(masterDrugUnit);
+
+        String baseUnit = sortMasterDrugUnitFx(masterPackage);
 
 
-//        String spuTitle = "碧生源奥利司他胶囊48粒抗肥胖排油减脂瘦身减重减肥药产品正品";
-//        String skuTitle = "3盒30粒+8粒（共98粒）";
-//        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle);
-//        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
+        String spuTitle = "36袋】腾药鱼鳔补肾丸补肾益精肾阳虚弱肾精亏损头昏耳鸣腰痛膝软";
+        String skuTitle = "花城 12袋【非本品介意者慎拍-【一盒】药店正品";
+        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle,masterPackage,baseUnit,masterDrugUnit,0);
+        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
 
 
 //        String spuTitle = "碧生源奥利司他胶囊48粒抗肥胖排油减脂瘦身减重减肥药产品正品";
@@ -493,9 +559,9 @@ public class SkuDrugUnitUDTF extends UDTF {
 //        list.add("60mg*5粒（3盒装）");
 //        list.add("艾丽126粒】加送60粒白芸豆");
 
-        list.stream().forEach((a) -> {
-            Map<String, Long> titleParse = titleParseFx("", a, 0);
-        });
+        //list.stream().forEach((a) -> {
+        //    Map<String, Long> titleParse = titleParseFx("", a, masterPackage, unit, 0);
+        //});
     }
 
 }

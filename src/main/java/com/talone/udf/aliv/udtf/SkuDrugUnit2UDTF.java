@@ -36,7 +36,7 @@ public class SkuDrugUnit2UDTF extends UDTF {
                     // 计算基础单位
                     String baseUnit = sortMasterDrugUnitFx(masterPackage);
 
-                    Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle, masterPackage, baseUnit, 0);
+                    Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle, masterPackage, baseUnit, masterDrugUnit, 0);
                     Long totalLs = null, totalHs = null;
                     if (null != titleParse.get("ls")) {
                         // 优先基于总粒数与标品粒数-》盒数
@@ -74,7 +74,7 @@ public class SkuDrugUnit2UDTF extends UDTF {
      * @param masterPackage
      * @return
      */
-    private String sortMasterDrugUnitFx(String masterPackage) {
+    private static String sortMasterDrugUnitFx(String masterPackage) {
         // 去除可能的 (*) 及 +*
         int x = masterPackage.indexOf("(");
         int y = masterPackage.indexOf("+");
@@ -141,10 +141,11 @@ public class SkuDrugUnit2UDTF extends UDTF {
         return ans;
     }
 
-    private static Map<String, Long> titleParseFx(String spuTitle, String skuTitle, String masterPackage, String baseUnit, Integer time) {
+    private static Map<String, Long> titleParseFx(String spuTitle, String skuTitle, String masterPackage, String baseUnit, Long masterDrugUnit, Integer time) {
 
         // 将sku spu中和标品规格完全一致的序列去除
         skuTitle = skuTitle.replaceAll(masterPackage, "");
+        skuTitle = skuTitle.replaceAll(masterDrugUnit + baseUnit, "");
 
         // todo 处理 加送xxx x粒 的情况
         Pattern pn = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -198,7 +199,7 @@ public class SkuDrugUnit2UDTF extends UDTF {
             // 0盒数0粒数     得1盒
             Long hs = 1L;
             // 获取spu的单盒粒数
-            Long spuLs = spuLsParse(spuTitle,baseUnit);
+            Long spuLs = spuLsParse(spuTitle, baseUnit);
             if (null != spuLs && 0 != spuLs) {
                 map.put("ls", hs * spuLs);
             } else {
@@ -418,7 +419,7 @@ public class SkuDrugUnit2UDTF extends UDTF {
             }
             Long ls = 0L;
             for (String zj : zjs) {
-                Long zjparse = zjParseFunc(zj, baseUnit, time);
+                Long zjparse = zjParseFunc(zj, baseUnit, masterDrugUnit, time);
                 ls = zjparse > ls ? zjparse : ls;
             }
             map.put("ls", ls);
@@ -432,7 +433,7 @@ public class SkuDrugUnit2UDTF extends UDTF {
         if (null == spuTitle || "".equals(spuTitle)) {
             return 0L;
         }
-        List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}"+baseUnit, spuTitle);
+        List<String> matchers = getMatchers("[0-9]+([.]{1}[0-9]+){0,1}" + baseUnit, spuTitle);
         Long ls = 0L;
         for (String matcher : matchers) {
             Pattern pattern = Pattern.compile("[0-9]+([.]{1}[0-9]+){0,1}");
@@ -444,13 +445,13 @@ public class SkuDrugUnit2UDTF extends UDTF {
         return ls;
     }
 
-    private static Long zjParseFunc(String zj, String baseUnit, Integer time) {
+    private static Long zjParseFunc(String zj, String baseUnit, Long masterDrugUnit, Integer time) {
         if (time == 4) {
             return 0L;
         }
         Long ls = 0L;
         for (String s : zj.split("\\+")) {
-            Map<String, Long> addParse = titleParseFx("", s, "", baseUnit, time + 1);
+            Map<String, Long> addParse = titleParseFx("", s, "", baseUnit, masterDrugUnit, time + 1);
             ls += (null == addParse.get("ls") ? 0L : addParse.get("ls"));
         }
         return ls;
@@ -479,15 +480,17 @@ public class SkuDrugUnit2UDTF extends UDTF {
 //        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle);
 //        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
 
-//        String masterPackage = "60mg*12粒*4板";
-//        Long masterDrugUnit = masterDrugUnitFx(masterPackage);
-//        System.out.println(masterDrugUnit);
+        String masterPackage = "12袋";
+        Long masterDrugUnit = masterDrugUnitFx(masterPackage);
+        System.out.println(masterDrugUnit);
+
+        String baseUnit = sortMasterDrugUnitFx(masterPackage);
 
 
-//        String spuTitle = "碧生源奥利司他胶囊48粒抗肥胖排油减脂瘦身减重减肥药产品正品";
-//        String skuTitle = "3盒30粒+8粒（共98粒）";
-//        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle);
-//        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
+        String spuTitle = "36袋】腾药鱼鳔补肾丸补肾益精肾阳虚弱肾精亏损头昏耳鸣腰痛膝软";
+        String skuTitle = "花城 12袋【非本品介意者慎拍-【一盒】药店正品";
+        Map<String, Long> titleParse = titleParseFx(spuTitle, skuTitle,masterPackage,baseUnit,masterDrugUnit,0);
+        System.out.println("zl:" + titleParse.get("zl") + ",zh:" + titleParse.get("zh"));
 
 
 //        String spuTitle = "碧生源奥利司他胶囊48粒抗肥胖排油减脂瘦身减重减肥药产品正品";
